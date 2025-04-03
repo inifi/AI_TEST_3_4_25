@@ -22,6 +22,7 @@ const navigationItems: SidebarItem[] = [
   { name: "Comment Management", icon: "chat", path: "/comment-management" },
   { name: "Analytics", icon: "analytics", path: "/analytics" },
   { name: "Ad Campaigns", icon: "campaign", path: "/ad-campaigns" },
+  { name: "Settings", icon: "settings", path: "/settings" },
 ];
 
 const platformItems: PlatformItem[] = [
@@ -103,9 +104,9 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             <div className="text-sm font-medium">Local User</div>
             <div className="text-xs text-gray-500 dark:text-gray-400 truncate">Self-Hosted</div>
           </div>
-          <button className="ml-auto p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+          <Link href="/settings" className="ml-auto p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <span className="material-icons text-gray-500 text-sm">settings</span>
-          </button>
+          </Link>
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import TrendAnalysisPage from "@/pages/TrendAnalysisPage";
 import CommentManagementPage from "@/pages/CommentManagementPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import AdCampaignsPage from "@/pages/AdCampaignsPage";
+import SettingsPage from "@/pages/SettingsPage";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/comment-management" component={CommentManagementPage} />
       <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/ad-campaigns" component={AdCampaignsPage} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );
