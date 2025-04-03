@@ -14,6 +14,56 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+// Scripts
+export const scripts = pgTable("scripts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  topic: text("topic").notNull(),
+  format: text("format").notNull(), // video, podcast, short, etc.
+  content: text("content").notNull(), // full script text
+  duration: integer("duration"), // estimated duration in seconds
+  tone: text("tone"), // casual, professional, educational, etc.
+  targetAudience: text("target_audience"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  audioPath: text("audio_path"), // path to generated audio file if TTS was applied
+  status: text("status").notNull().default("draft"), // draft, finalized, converted
+});
+
+export const insertScriptSchema = createInsertSchema(scripts).pick({
+  title: true,
+  topic: true,
+  format: true,
+  content: true,
+  duration: true,
+  tone: true,
+  targetAudience: true,
+  audioPath: true,
+  status: true,
+});
+
+// AI Configuration
+export const aiConfigs = pgTable("ai_configs", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  modelType: text("model_type").notNull(), // llm, tts, image, video
+  modelName: text("model_name").notNull(),
+  active: boolean("active").notNull().default(true),
+  settings: jsonb("settings"), // settings specific to this model type
+  capabilities: jsonb("capabilities"), // what this model can do
+  lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+  downloadStatus: text("download_status").default("not_downloaded"), // not_downloaded, downloading, available
+});
+
+export const insertAiConfigSchema = createInsertSchema(aiConfigs).pick({
+  name: true,
+  modelType: true,
+  modelName: true,
+  active: true,
+  settings: true,
+  capabilities: true,
+  downloadStatus: true,
+});
+
 // Platforms
 export const platforms = pgTable("platforms", {
   id: serial("id").primaryKey(),
@@ -115,6 +165,12 @@ export const insertTrendingTopicSchema = createInsertSchema(trendingTopics).pick
 // Define type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Script = typeof scripts.$inferSelect;
+export type InsertScript = z.infer<typeof insertScriptSchema>;
+
+export type AiConfig = typeof aiConfigs.$inferSelect;
+export type InsertAiConfig = z.infer<typeof insertAiConfigSchema>;
 
 export type Platform = typeof platforms.$inferSelect;
 export type InsertPlatform = z.infer<typeof insertPlatformSchema>;

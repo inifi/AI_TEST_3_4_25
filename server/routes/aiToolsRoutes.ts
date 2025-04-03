@@ -1,156 +1,366 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
+import { storage } from "../storage";
+import { insertAiConfigSchema, insertScriptSchema } from "@shared/schema";
+import { z } from "zod";
+import localLLM from "../services/zeroAI/localLLM";
+import localTTS from "../services/zeroAI/localTTS";
+import localImageGenerator from "../services/zeroAI/localImageGenerator";
+import videoGenerator from "../services/zeroAI/videoGenerator";
 
 export const aiToolsRouter = Router();
 
-// Endpoint to save AI tools configuration
-aiToolsRouter.post("/settings", async (req, res) => {
+// AI Configs endpoints
+aiToolsRouter.get("/ai-configs", async (_req: Request, res: Response) => {
   try {
-    const settings = req.body;
-    
-    // In a real implementation, this would save settings to a database
-    
-    // Simulate processing time
-    setTimeout(() => {
-      res.json({ 
-        message: "AI tools settings saved successfully",
-        settings,
-        timestamp: new Date().toISOString()
-      });
-    }, 1000);
+    const configs = await storage.getAiConfigs();
+    res.json(configs);
   } catch (error) {
-    res.status(500).json({ 
-      message: "Failed to save AI tools settings", 
-      error: (error as Error).message 
-    });
+    res.status(500).json({ error: (error as Error).message });
   }
 });
 
-// Endpoint to get current AI tools configuration
-aiToolsRouter.get("/settings", async (req, res) => {
+aiToolsRouter.get("/ai-configs/:id", async (req: Request, res: Response) => {
   try {
-    // In a real implementation, this would fetch settings from a database
+    const id = parseInt(req.params.id);
+    const config = await storage.getAiConfig(id);
     
-    // Mock AI tools settings
-    const aiToolsSettings = {
-      contentGeneration: {
-        model: "gpt-4o",
-        temperature: "0.7",
-        defaultPrompt: "Create engaging, informative content about {topic} for {platform} that is {tone} in tone and aimed at {audience}. Include relevant call-to-actions and engagement hooks."
-      },
-      scriptGeneration: {
-        model: "gpt-4o",
-        temperature: "0.7",
-        defaultPrompt: "Write a {format} script about {topic} in a {tone} tone for {audience}. The script should be engaging, informative, and include appropriate pacing for a video of approximately {length} minutes."
-      },
-      voiceGeneration: {
-        provider: "elevenlabs",
-        defaultVoice: "professional-male",
-        speed: "1.0",
-        format: "mp3"
-      },
-      imageGeneration: {
-        model: "dall-e-3",
-        size: "1024x1024",
-        style: "vivid",
-        defaultPrompt: "Create a visually appealing thumbnail image for a video about {topic}. The image should be eye-catching, professional, and clearly represent the topic."
-      },
-      trendAnalysis: {
-        sources: ["twitter", "youtube", "google-trends"],
-        updateFrequency: "hourly",
-        region: "global",
-        categories: ["technology", "entertainment", "business"]
-      }
-    };
-    
-    res.json(aiToolsSettings);
-  } catch (error) {
-    res.status(500).json({ 
-      message: "Failed to get AI tools settings", 
-      error: (error as Error).message 
-    });
-  }
-});
-
-// Endpoint to test AI model connection
-aiToolsRouter.post("/test-connection", async (req, res) => {
-  try {
-    const { model, provider } = req.body;
-    
-    if (!model || !provider) {
-      return res.status(400).json({ 
-        message: "Model and provider are required" 
-      });
+    if (!config) {
+      return res.status(404).json({ error: "AI Config not found" });
     }
     
-    // In a real implementation, this would test the connection to the AI model
-    
-    // Simulate processing time
-    setTimeout(() => {
-      // Randomly succeed or fail for demo purposes
-      const success = Math.random() > 0.2;
-      
-      if (success) {
-        res.json({ 
-          status: "success",
-          message: `Successfully connected to ${model} on ${provider}`,
-          latency: Math.floor(Math.random() * 500) + 100, // Random latency between 100-600ms
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        res.status(400).json({ 
-          status: "error",
-          message: `Failed to connect to ${model} on ${provider}. Please check your API keys and try again.`,
-          error: "API authentication failed",
-          timestamp: new Date().toISOString()
-        });
-      }
-    }, 2000);
+    res.json(config);
   } catch (error) {
-    res.status(500).json({ 
-      message: "Failed to test connection", 
-      error: (error as Error).message 
-    });
+    res.status(500).json({ error: (error as Error).message });
   }
 });
 
-// Endpoint to get available models
-aiToolsRouter.get("/available-models", async (req, res) => {
+aiToolsRouter.get("/ai-configs/type/:type", async (req: Request, res: Response) => {
   try {
-    const { provider } = req.query;
+    const modelType = req.params.type;
+    const configs = await storage.getAiConfigsByType(modelType);
+    res.json(configs);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.post("/ai-configs", async (req: Request, res: Response) => {
+  try {
+    const validatedData = insertAiConfigSchema.parse(req.body);
+    const newConfig = await storage.createAiConfig(validatedData);
+    res.status(201).json(newConfig);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.patch("/ai-configs/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const config = await storage.getAiConfig(id);
     
-    // In a real implementation, this would fetch available models from the provider's API
+    if (!config) {
+      return res.status(404).json({ error: "AI Config not found" });
+    }
     
-    // Mock available models
-    const availableModels = {
-      "openai": [
-        { id: "gpt-4o", name: "GPT-4o", capabilities: ["text", "image-understanding"], cost: "high" },
-        { id: "gpt-4-turbo", name: "GPT-4 Turbo", capabilities: ["text"], cost: "medium" },
-        { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", capabilities: ["text"], cost: "low" }
-      ],
-      "anthropic": [
-        { id: "claude-3-7-sonnet-20250219", name: "Claude 3.7 Sonnet", capabilities: ["text", "image-understanding"], cost: "high" },
-        { id: "claude-3-opus", name: "Claude 3 Opus", capabilities: ["text", "image-understanding"], cost: "very-high" },
-        { id: "claude-3-sonnet", name: "Claude 3 Sonnet", capabilities: ["text", "image-understanding"], cost: "medium" }
-      ],
-      "elevenlabs": [
-        { id: "eleven-multilingual-v2", name: "Multilingual v2", capabilities: ["text-to-speech"], cost: "medium" },
-        { id: "eleven-monolingual-v1", name: "Monolingual v1", capabilities: ["text-to-speech"], cost: "low" }
-      ],
-      "stability-ai": [
-        { id: "stable-diffusion-xl", name: "Stable Diffusion XL", capabilities: ["image-generation"], cost: "medium" },
-        { id: "stable-diffusion-3", name: "Stable Diffusion 3", capabilities: ["image-generation"], cost: "high" }
-      ]
-    };
+    const validatedData = insertAiConfigSchema.partial().parse(req.body);
+    const updatedConfig = await storage.updateAiConfig(id, validatedData);
+    res.json(updatedConfig);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.delete("/ai-configs/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const config = await storage.getAiConfig(id);
     
-    if (provider && provider in availableModels) {
-      res.json(availableModels[provider as keyof typeof availableModels]);
+    if (!config) {
+      return res.status(404).json({ error: "AI Config not found" });
+    }
+    
+    const success = await storage.deleteAiConfig(id);
+    if (success) {
+      res.status(204).end();
     } else {
-      res.json(availableModels);
+      res.status(500).json({ error: "Failed to delete AI Config" });
     }
   } catch (error) {
-    res.status(500).json({ 
-      message: "Failed to get available models", 
-      error: (error as Error).message 
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Scripts endpoints
+aiToolsRouter.get("/scripts", async (_req: Request, res: Response) => {
+  try {
+    const scripts = await storage.getScripts();
+    res.json(scripts);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.get("/scripts/recent", async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 5;
+    const scripts = await storage.getRecentScripts(limit);
+    res.json(scripts);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.get("/scripts/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const script = await storage.getScript(id);
+    
+    if (!script) {
+      return res.status(404).json({ error: "Script not found" });
+    }
+    
+    res.json(script);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.post("/scripts", async (req: Request, res: Response) => {
+  try {
+    const validatedData = insertScriptSchema.parse(req.body);
+    const newScript = await storage.createScript(validatedData);
+    res.status(201).json(newScript);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.patch("/scripts/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const script = await storage.getScript(id);
+    
+    if (!script) {
+      return res.status(404).json({ error: "Script not found" });
+    }
+    
+    const validatedData = insertScriptSchema.partial().parse(req.body);
+    const updatedScript = await storage.updateScript(id, validatedData);
+    res.json(updatedScript);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.delete("/scripts/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const script = await storage.getScript(id);
+    
+    if (!script) {
+      return res.status(404).json({ error: "Script not found" });
+    }
+    
+    const success = await storage.deleteScript(id);
+    if (success) {
+      res.status(204).end();
+    } else {
+      res.status(500).json({ error: "Failed to delete script" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// AI Service action endpoints
+aiToolsRouter.post("/ai/generate-script", async (req: Request, res: Response) => {
+  try {
+    const { topic, format, length, tone, audience } = req.body;
+    
+    if (!topic || !format) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+    
+    const scriptContent = await localLLM.generateScript(
+      topic, 
+      format, 
+      length || 5, 
+      tone || "conversational", 
+      audience || "general"
+    );
+    
+    // Create a script record with the generated content
+    const newScript = await storage.createScript({
+      title: `${format.charAt(0).toUpperCase() + format.slice(1)} about ${topic}`,
+      topic,
+      format,
+      content: scriptContent,
+      duration: length ? length * 60 : 300, // Convert minutes to seconds
+      tone,
+      targetAudience: audience,
+      status: "draft"
     });
+    
+    res.status(201).json(newScript);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.post("/ai/text-to-speech", async (req: Request, res: Response) => {
+  try {
+    const { scriptId, voice, format } = req.body;
+    
+    if (!scriptId) {
+      return res.status(400).json({ error: "Missing scriptId parameter" });
+    }
+    
+    const script = await storage.getScript(parseInt(scriptId));
+    if (!script) {
+      return res.status(404).json({ error: "Script not found" });
+    }
+    
+    // Generate audio from the script
+    const audioResult = await localTTS.scriptToAudio(
+      script.content,
+      (voice as any) || "professional-male",
+      (format as any) || "mp3"
+    );
+    
+    // Update the script with the audio path
+    const updatedScript = await storage.updateScript(script.id, {
+      audioPath: audioResult.audioPath,
+      status: "finalized"
+    });
+    
+    res.json({
+      script: updatedScript,
+      audio: {
+        path: audioResult.audioPath,
+        duration: audioResult.durationMs / 1000, // Convert to seconds
+        format: audioResult.format
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.post("/ai/generate-video", async (req: Request, res: Response) => {
+  try {
+    const { scriptId, resolution, style, voiceType } = req.body;
+    
+    if (!scriptId) {
+      return res.status(400).json({ error: "Missing scriptId parameter" });
+    }
+    
+    const script = await storage.getScript(parseInt(scriptId));
+    if (!script) {
+      return res.status(404).json({ error: "Script not found" });
+    }
+    
+    // Generate a video from the script
+    const videoResult = await videoGenerator.generateVideo({
+      script: script.content,
+      title: script.title,
+      voiceType: voiceType || "professional-male",
+      resolution: (resolution as any) || "720p",
+      style: (style as any) || "dynamic",
+      thumbnailPrompt: `Thumbnail for ${script.title} about ${script.topic}`
+    });
+    
+    // Create a content record for the generated video
+    const newContent = await storage.createContent({
+      title: script.title,
+      description: `Auto-generated video about ${script.topic}`,
+      contentType: "video",
+      status: "ready",
+      filePath: videoResult.videoPath,
+      thumbnailPath: videoResult.thumbnailPath,
+      metadata: {
+        duration: videoResult.duration,
+        format: videoResult.format,
+        resolution: videoResult.resolution,
+        scriptId: script.id
+      }
+    });
+    
+    // Update the script status
+    await storage.updateScript(script.id, {
+      status: "converted"
+    });
+    
+    res.status(201).json({
+      content: newContent,
+      video: videoResult
+    });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+aiToolsRouter.post("/ai/download-model", async (req: Request, res: Response) => {
+  try {
+    const { configId } = req.body;
+    
+    if (!configId) {
+      return res.status(400).json({ error: "Missing configId parameter" });
+    }
+    
+    const config = await storage.getAiConfig(parseInt(configId));
+    if (!config) {
+      return res.status(404).json({ error: "AI Config not found" });
+    }
+    
+    // Update status to downloading
+    await storage.updateAiConfig(config.id, {
+      downloadStatus: "downloading"
+    });
+    
+    // Simulate downloading the model based on type
+    let success = false;
+    
+    if (config.modelType === "llm") {
+      success = await localLLM.ensureModel(config.modelName as any);
+    } else if (config.modelType === "tts") {
+      success = await localTTS.downloadVoice(config.modelName);
+    } else if (config.modelType === "image") {
+      success = await localImageGenerator.ensureModel(config.modelName as any);
+    }
+    
+    // Update status based on result
+    const updatedConfig = await storage.updateAiConfig(config.id, {
+      downloadStatus: success ? "available" : "failed"
+    });
+    
+    res.json({
+      config: updatedConfig,
+      success
+    });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// System status endpoint
+aiToolsRouter.get("/system-status", async (_req: Request, res: Response) => {
+  try {
+    const status = await storage.getSystemStatus();
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
   }
 });

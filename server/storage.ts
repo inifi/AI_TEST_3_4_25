@@ -1,5 +1,7 @@
 import {
   User, InsertUser, users,
+  Script, InsertScript, scripts,
+  AiConfig, InsertAiConfig, aiConfigs,
   Platform, InsertPlatform, platforms,
   PlatformAccount, InsertPlatformAccount, platformAccounts,
   Content, InsertContent, content,
@@ -13,6 +15,22 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // Scripts
+  getScripts(): Promise<Script[]>;
+  getScript(id: number): Promise<Script | undefined>;
+  getRecentScripts(limit: number): Promise<Script[]>;
+  createScript(script: InsertScript): Promise<Script>;
+  updateScript(id: number, script: Partial<InsertScript>): Promise<Script | undefined>;
+  deleteScript(id: number): Promise<boolean>;
+  
+  // AI Configs
+  getAiConfigs(): Promise<AiConfig[]>;
+  getAiConfig(id: number): Promise<AiConfig | undefined>;
+  getAiConfigsByType(modelType: string): Promise<AiConfig[]>;
+  createAiConfig(config: InsertAiConfig): Promise<AiConfig>;
+  updateAiConfig(id: number, config: Partial<InsertAiConfig>): Promise<AiConfig | undefined>;
+  deleteAiConfig(id: number): Promise<boolean>;
 
   // Platforms
   getPlatforms(): Promise<Platform[]>;
@@ -68,6 +86,8 @@ export type SystemStatus = {
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private scripts: Map<number, Script>;
+  private aiConfigs: Map<number, AiConfig>;
   private platforms: Map<number, Platform>;
   private platformAccounts: Map<number, PlatformAccount>;
   private contents: Map<number, Content>;
@@ -75,6 +95,8 @@ export class MemStorage implements IStorage {
   private trendingTopics: Map<number, TrendingTopic>;
   
   private userId: number;
+  private scriptId: number;
+  private aiConfigId: number;
   private platformId: number;
   private accountId: number;
   private contentId: number;
@@ -83,6 +105,8 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.scripts = new Map();
+    this.aiConfigs = new Map();
     this.platforms = new Map();
     this.platformAccounts = new Map();
     this.contents = new Map();
@@ -90,6 +114,8 @@ export class MemStorage implements IStorage {
     this.trendingTopics = new Map();
 
     this.userId = 1;
+    this.scriptId = 1;
+    this.aiConfigId = 1;
     this.platformId = 1;
     this.accountId = 1;
     this.contentId = 1;
@@ -102,6 +128,100 @@ export class MemStorage implements IStorage {
 
   // Seed some initial data for demonstration
   private seedInitialData() {
+    // Add AI configs
+    const llama3Config: AiConfig = {
+      id: this.aiConfigId++,
+      name: "Llama 3",
+      modelType: "llm",
+      modelName: "llama3",
+      active: true,
+      settings: {
+        maxTokens: 2048,
+        temperature: 0.7,
+        topP: 0.9
+      },
+      capabilities: {
+        scriptGeneration: true,
+        contentCreation: true,
+        trendAnalysis: true,
+        summarization: true
+      },
+      lastUpdated: new Date(),
+      downloadStatus: "not_downloaded"
+    };
+    this.aiConfigs.set(llama3Config.id, llama3Config);
+
+    const ttsConfig: AiConfig = {
+      id: this.aiConfigId++,
+      name: "Local TTS",
+      modelType: "tts",
+      modelName: "professional-male",
+      active: true,
+      settings: {
+        speed: 1.0,
+        format: "mp3"
+      },
+      capabilities: {
+        voiceGeneration: true,
+        scriptToAudio: true,
+        voiceStyles: ["professional", "casual", "energetic"]
+      },
+      lastUpdated: new Date(),
+      downloadStatus: "available"
+    };
+    this.aiConfigs.set(ttsConfig.id, ttsConfig);
+
+    const imageConfig: AiConfig = {
+      id: this.aiConfigId++,
+      name: "SVG Generator",
+      modelType: "image",
+      modelName: "svg-generator",
+      active: true,
+      settings: {
+        size: "1024x1024",
+        style: "artistic"
+      },
+      capabilities: {
+        thumbnailGeneration: true,
+        imageGeneration: true,
+        supportedSizes: ["512x512", "1024x1024", "1280x720"]
+      },
+      lastUpdated: new Date(),
+      downloadStatus: "available"
+    };
+    this.aiConfigs.set(imageConfig.id, imageConfig);
+
+    // Add scripts
+    const videoScript: Script = {
+      id: this.scriptId++,
+      title: "Creating Zero-Cost Content with AI",
+      topic: "AI content creation",
+      format: "video",
+      content: "# INTRODUCTION\n\nWelcome to this guide on creating content with zero-cost AI tools. Today we'll explore how you can leverage free open-source models to create high-quality content without any subscription fees.\n\n# SECTION 1: LOCAL LLMS\n\nLet's start with text generation. There are several open-source language models that can run on consumer hardware with surprisingly good results. These include models like Llama 3 and Mistral, which can be downloaded and run locally.\n\n# SECTION 2: TEXT-TO-SPEECH\n\nNext, let's look at converting your scripts to audio. Open-source TTS systems have made remarkable progress, offering near commercial-quality voices without any API costs.\n\n# SECTION 3: IMAGE GENERATION\n\nFor thumbnails and visuals, local Stable Diffusion or even SVG generators can create eye-catching graphics completely free.\n\n# CONCLUSION\n\nBy combining these tools, you can build a complete content creation pipeline that operates entirely on your own hardware, with zero ongoing costs. Thanks for watching!",
+      duration: 360, // 6 minutes
+      tone: "educational",
+      targetAudience: "content creators",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      audioPath: null,
+      status: "draft"
+    };
+    this.scripts.set(videoScript.id, videoScript);
+
+    const shortScript: Script = {
+      id: this.scriptId++,
+      title: "5 AI Tools Every Creator Needs",
+      topic: "AI tools",
+      format: "short",
+      content: "Did you know you can create professional content without spending a dime? Here are 5 free AI tools that every creator should be using right now:\n\n1. Open source language models for scriptwriting\n2. Free text-to-speech for voiceovers\n3. Local image generation for thumbnails\n4. Open source video editors\n5. Free automation tools for posting\n\nThe best part? All of these can run on your own computer with zero subscription fees. Follow for more tips on building your content creation pipeline without breaking the bank!",
+      duration: 60, // 1 minute
+      tone: "enthusiastic",
+      targetAudience: "social media creators",
+      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+      audioPath: "/content/audio/5-ai-tools.mp3",
+      status: "finalized"
+    };
+    this.scripts.set(shortScript.id, shortScript);
+
     // Add platforms
     const youtubePlatform: Platform = {
       id: this.platformId++,
@@ -294,6 +414,101 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  // Script methods
+  async getScripts(): Promise<Script[]> {
+    return Array.from(this.scripts.values());
+  }
+
+  async getScript(id: number): Promise<Script | undefined> {
+    return this.scripts.get(id);
+  }
+
+  async getRecentScripts(limit: number): Promise<Script[]> {
+    return Array.from(this.scripts.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  async createScript(insertScript: InsertScript): Promise<Script> {
+    const id = this.scriptId++;
+    const script: Script = {
+      id,
+      content: insertScript.content,
+      format: insertScript.format,
+      title: insertScript.title,
+      topic: insertScript.topic,
+      status: insertScript.status || "draft",
+      audioPath: insertScript.audioPath || null,
+      duration: insertScript.duration || null,
+      tone: insertScript.tone || null,
+      targetAudience: insertScript.targetAudience || null,
+      createdAt: new Date()
+    };
+    this.scripts.set(id, script);
+    return script;
+  }
+
+  async updateScript(id: number, scriptUpdate: Partial<InsertScript>): Promise<Script | undefined> {
+    const existingScript = this.scripts.get(id);
+    if (!existingScript) return undefined;
+    
+    const updatedScript = { ...existingScript, ...scriptUpdate };
+    this.scripts.set(id, updatedScript);
+    return updatedScript;
+  }
+
+  async deleteScript(id: number): Promise<boolean> {
+    return this.scripts.delete(id);
+  }
+
+  // AI Config methods
+  async getAiConfigs(): Promise<AiConfig[]> {
+    return Array.from(this.aiConfigs.values());
+  }
+
+  async getAiConfig(id: number): Promise<AiConfig | undefined> {
+    return this.aiConfigs.get(id);
+  }
+
+  async getAiConfigsByType(modelType: string): Promise<AiConfig[]> {
+    return Array.from(this.aiConfigs.values())
+      .filter(config => config.modelType === modelType);
+  }
+
+  async createAiConfig(insertConfig: InsertAiConfig): Promise<AiConfig> {
+    const id = this.aiConfigId++;
+    const config: AiConfig = {
+      id,
+      name: insertConfig.name,
+      modelType: insertConfig.modelType,
+      modelName: insertConfig.modelName,
+      active: insertConfig.active !== undefined ? insertConfig.active : true,
+      settings: insertConfig.settings || {},
+      capabilities: insertConfig.capabilities || {},
+      lastUpdated: new Date(),
+      downloadStatus: insertConfig.downloadStatus || "not_downloaded"
+    };
+    this.aiConfigs.set(id, config);
+    return config;
+  }
+
+  async updateAiConfig(id: number, configUpdate: Partial<InsertAiConfig>): Promise<AiConfig | undefined> {
+    const existingConfig = this.aiConfigs.get(id);
+    if (!existingConfig) return undefined;
+    
+    const updatedConfig = { 
+      ...existingConfig, 
+      ...configUpdate,
+      lastUpdated: new Date()
+    };
+    this.aiConfigs.set(id, updatedConfig);
+    return updatedConfig;
+  }
+
+  async deleteAiConfig(id: number): Promise<boolean> {
+    return this.aiConfigs.delete(id);
+  }
+
   // Platform methods
   async getPlatforms(): Promise<Platform[]> {
     return Array.from(this.platforms.values());
@@ -305,7 +520,12 @@ export class MemStorage implements IStorage {
 
   async createPlatform(insertPlatform: InsertPlatform): Promise<Platform> {
     const id = this.platformId++;
-    const platform: Platform = { ...insertPlatform, id };
+    const platform: Platform = { 
+      id,
+      name: insertPlatform.name,
+      active: insertPlatform.active !== undefined ? insertPlatform.active : true,
+      icon: insertPlatform.icon
+    };
     this.platforms.set(id, platform);
     return platform;
   }
@@ -340,7 +560,18 @@ export class MemStorage implements IStorage {
 
   async createPlatformAccount(insertAccount: InsertPlatformAccount): Promise<PlatformAccount> {
     const id = this.accountId++;
-    const account: PlatformAccount = { ...insertAccount, id };
+    const account: PlatformAccount = { 
+      id,
+      name: insertAccount.name,
+      username: insertAccount.username,
+      active: insertAccount.active !== undefined ? insertAccount.active : true,
+      platformId: insertAccount.platformId,
+      accessToken: insertAccount.accessToken || null,
+      refreshToken: insertAccount.refreshToken || null,
+      tokenExpiry: insertAccount.tokenExpiry || null,
+      followerCount: insertAccount.followerCount || null,
+      metadata: insertAccount.metadata || {}
+    };
     this.platformAccounts.set(id, account);
     return account;
   }
@@ -376,8 +607,14 @@ export class MemStorage implements IStorage {
   async createContent(insertContent: InsertContent): Promise<Content> {
     const id = this.contentId++;
     const content: Content = { 
-      ...insertContent, 
-      id, 
+      id,
+      title: insertContent.title,
+      contentType: insertContent.contentType,
+      status: insertContent.status || "draft",
+      metadata: insertContent.metadata || {},
+      description: insertContent.description || null,
+      filePath: insertContent.filePath || null,
+      thumbnailPath: insertContent.thumbnailPath || null,
       createdAt: new Date() 
     };
     this.contents.set(id, content);
@@ -417,8 +654,11 @@ export class MemStorage implements IStorage {
   async createScheduledPost(insertPost: InsertScheduledPost): Promise<ScheduledPost> {
     const id = this.postId++;
     const post: ScheduledPost = { 
-      ...insertPost, 
       id,
+      contentId: insertPost.contentId,
+      platformAccountId: insertPost.platformAccountId,
+      scheduledTime: insertPost.scheduledTime,
+      status: insertPost.status || "pending",
       postId: null,
       error: null
     };
@@ -457,8 +697,11 @@ export class MemStorage implements IStorage {
   async createTrendingTopic(insertTopic: InsertTrendingTopic): Promise<TrendingTopic> {
     const id = this.topicId++;
     const topic: TrendingTopic = { 
-      ...insertTopic, 
       id,
+      topic: insertTopic.topic,
+      description: insertTopic.description || null,
+      category: insertTopic.category,
+      trendScore: insertTopic.trendScore,
       discoveredAt: new Date()
     };
     this.trendingTopics.set(id, topic);
