@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   Dialog,
   DialogContent,
@@ -36,7 +38,7 @@ const apiKeyFormSchema = z.object({
   description: z.string().optional(),
 });
 
-// Mock type for API keys
+// Type for API keys
 type APIKey = {
   id: number;
   name: string;
@@ -46,42 +48,17 @@ type APIKey = {
   createdAt: string;
 }
 
-// Mock API keys data
-// In a real implementation, this would come from the backend
-const mockApiKeys: APIKey[] = [
-  {
-    id: 1,
-    name: "OpenAI API Key",
-    key: "sk-••••••••••••••••••••••••••••••••••••",
-    service: "OpenAI",
-    description: "Used for content generation and analysis",
-    createdAt: "2023-08-01T14:30:00Z",
-  },
-  {
-    id: 2,
-    name: "Google Cloud API Key",
-    key: "AIza••••••••••••••••••••••••••",
-    service: "Google Cloud",
-    description: "For YouTube integration and translation",
-    createdAt: "2023-08-02T09:15:00Z",
-  },
-  {
-    id: 3,
-    name: "Weather API Key",
-    key: "wapi••••••••••••••••••",
-    service: "WeatherAPI",
-    description: "For weather-related content creation",
-    createdAt: "2023-08-03T11:20:00Z",
-  },
-];
-
 export default function APISettings() {
   const { toast } = useToast();
   const [apiDialogOpen, setApiDialogOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [apiKeys, setApiKeys] = useState<APIKey[]>(mockApiKeys);
   const [editingApiKey, setEditingApiKey] = useState<APIKey | null>(null);
   const [deletingKeyId, setDeletingKeyId] = useState<number | null>(null);
+  
+  // Fetch API keys
+  const { data: apiKeys = [], isLoading } = useQuery({
+    queryKey: ['/api/api-keys'],
+  });
   
   // API key form
   const apiKeyForm = useForm<z.infer<typeof apiKeyFormSchema>>({
@@ -91,6 +68,61 @@ export default function APISettings() {
       key: "",
       service: "",
       description: "",
+    }
+  });
+
+  // Add/Edit API Key Mutation
+  const apiKeyMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof apiKeyFormSchema>) => {
+      if (editingApiKey) {
+        return apiRequest("PUT", `/api/api-keys/${editingApiKey.id}`, data);
+      } else {
+        return apiRequest("POST", "/api/api-keys", data);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/api-keys'] });
+      setApiDialogOpen(false);
+      setEditingApiKey(null);
+      apiKeyForm.reset();
+      toast({
+        title: editingApiKey ? "API Key updated" : "API Key added",
+        description: editingApiKey 
+          ? "The API key has been updated successfully" 
+          : "The API key has been added successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to ${editingApiKey ? 'update' : 'add'} API key: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete API Key Mutation
+  const deleteApiKeyMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/api-keys/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/api-keys'] });
+      setConfirmDeleteOpen(false);
+      setDeletingKeyId(null);
+      toast({
+        title: "API Key deleted",
+        description: "The API key has been deleted successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete API key: ${error.message}`,
+        variant: "destructive",
+      });
     }
   });
 
@@ -127,15 +159,7 @@ export default function APISettings() {
   // Handle confirming API key deletion
   const confirmDeleteApiKey = () => {
     if (deletingKeyId !== null) {
-      // In a real implementation, this would be an API call
-      setApiKeys(apiKeys.filter(key => key.id !== deletingKeyId));
-      setConfirmDeleteOpen(false);
-      setDeletingKeyId(null);
-      toast({
-        title: "API Key deleted",
-        description: "The API key has been deleted successfully",
-        variant: "default",
-      });
+      deleteApiKeyMutation.mutate(deletingKeyId);
     }
   };
 
@@ -150,37 +174,7 @@ export default function APISettings() {
 
   // API key form submission
   const onApiKeySubmit = (values: z.infer<typeof apiKeyFormSchema>) => {
-    if (editingApiKey) {
-      // In a real implementation, this would be an API call
-      setApiKeys(apiKeys.map(key => 
-        key.id === editingApiKey.id 
-          ? { ...key, ...values, key: values.key } 
-          : key
-      ));
-      toast({
-        title: "API Key updated",
-        description: "The API key has been updated successfully",
-        variant: "default",
-      });
-    } else {
-      // In a real implementation, this would be an API call
-      const newKey: APIKey = {
-        id: Math.max(...apiKeys.map(k => k.id), 0) + 1,
-        name: values.name,
-        key: values.key,
-        service: values.service,
-        description: values.description,
-        createdAt: new Date().toISOString(),
-      };
-      setApiKeys([...apiKeys, newKey]);
-      toast({
-        title: "API Key added",
-        description: "The API key has been added successfully",
-        variant: "default",
-      });
-    }
-    setApiDialogOpen(false);
-    apiKeyForm.reset();
+    apiKeyMutation.mutate(values);
   };
 
   // Get service icon and color

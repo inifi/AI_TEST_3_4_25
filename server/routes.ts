@@ -372,6 +372,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API routes for API keys
+  app.get(`${apiPrefix}/api-keys`, async (req, res) => {
+    try {
+      // In a real implementation, this would fetch from the database
+      // For now, return mock data for UI testing
+      const apiKeys = [
+        {
+          id: 1,
+          name: "OpenAI API Key",
+          key: "sk-••••••••••••••••••••••••••••••••••••",
+          service: "OpenAI",
+          description: "Used for content generation and analysis",
+          createdAt: "2023-08-01T14:30:00Z",
+        },
+        {
+          id: 2,
+          name: "Google Cloud API Key",
+          key: "AIza••••••••••••••••••••••••••",
+          service: "Google Cloud",
+          description: "For YouTube integration and translation",
+          createdAt: "2023-08-02T09:15:00Z",
+        },
+        {
+          id: 3,
+          name: "Weather API Key",
+          key: "wapi••••••••••••••••••",
+          service: "WeatherAPI",
+          description: "For weather-related content creation",
+          createdAt: "2023-08-03T11:20:00Z",
+        },
+      ];
+      res.json(apiKeys);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get API keys", error: (error as Error).message });
+    }
+  });
+
+  app.post(`${apiPrefix}/api-keys`, async (req, res) => {
+    try {
+      // In a real implementation, this would save to the database
+      // For now, return the input with an ID for UI testing
+      const newKey = {
+        id: Date.now(),
+        ...req.body,
+        createdAt: new Date().toISOString(),
+      };
+      res.status(201).json(newKey);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create API key", error: (error as Error).message });
+    }
+  });
+
+  app.put(`${apiPrefix}/api-keys/:id`, async (req, res) => {
+    try {
+      // In a real implementation, this would update the database
+      // For now, return the input with the ID for UI testing
+      const updatedKey = {
+        id: Number(req.params.id),
+        ...req.body,
+        createdAt: req.body.createdAt || new Date().toISOString(),
+      };
+      res.json(updatedKey);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update API key", error: (error as Error).message });
+    }
+  });
+
+  app.delete(`${apiPrefix}/api-keys/:id`, async (req, res) => {
+    try {
+      // In a real implementation, this would delete from the database
+      // For now, just return success for UI testing
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete API key", error: (error as Error).message });
+    }
+  });
+
+  // API routes for system settings
+  app.get(`${apiPrefix}/system-settings`, async (req, res) => {
+    try {
+      // In a real implementation, this would fetch from the database
+      // For now, return mock data for UI testing
+      const settings = {
+        // AI Configuration
+        maxModelsLoaded: 5,
+        aiContentQualityThreshold: 70,
+        enableAIContentGeneration: true,
+        
+        // Content Storage
+        storageLocation: "local",
+        maxStorageUsage: 10,
+        enableAutoCleanup: true,
+        
+        // Scheduling
+        maxConcurrentPosts: 3,
+        retryFailedPosts: true,
+        maxPostRetries: 3,
+        
+        // Notifications
+        enableEmailNotifications: false,
+        emailAddress: "",
+        notifyOnPostSuccess: true,
+        notifyOnPostFailure: true,
+        
+        // System
+        enableSystemMetrics: true,
+        systemLanguage: "en",
+        theme: "system",
+      };
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get system settings", error: (error as Error).message });
+    }
+  });
+
+  app.put(`${apiPrefix}/system-settings`, async (req, res) => {
+    try {
+      // In a real implementation, this would update the database
+      // For now, return the input for UI testing
+      res.json(req.body);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update system settings", error: (error as Error).message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

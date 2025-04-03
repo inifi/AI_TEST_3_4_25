@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
@@ -10,6 +10,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -50,8 +52,8 @@ const systemSettingsFormSchema = z.object({
   theme: z.string().min(4),
 });
 
-// Mock initial system settings
-const mockInitialSettings = {
+// Default initial settings (used if no settings are found)
+const defaultSettings = {
   // AI Configuration
   maxModelsLoaded: 5,
   aiContentQualityThreshold: 70,
@@ -83,31 +85,58 @@ export default function SystemSettings() {
   const { toast } = useToast();
   const [confirmFactoryResetOpen, setConfirmFactoryResetOpen] = useState(false);
   const [confirmDataClearOpen, setConfirmDataClearOpen] = useState(false);
+
+  // Fetch system settings
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['/api/system-settings'],
+  });
   
   // System settings form
   const form = useForm<z.infer<typeof systemSettingsFormSchema>>({
     resolver: zodResolver(systemSettingsFormSchema),
-    defaultValues: mockInitialSettings
+    defaultValues: defaultSettings
   });
+
+  // Update form when settings are loaded from the server
+  useEffect(() => {
+    if (settings) {
+      form.reset(settings);
+    }
+  }, [settings, form]);
 
   const emailNotificationsEnabled = form.watch("enableEmailNotifications");
 
+  // Save settings mutation
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof systemSettingsFormSchema>) => {
+      return apiRequest("PUT", `/api/system-settings`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/system-settings'] });
+      toast({
+        title: "Settings saved",
+        description: "Your system settings have been saved successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to save settings: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
   // Handle form submission
   const onSubmit = (values: z.infer<typeof systemSettingsFormSchema>) => {
-    // In a real implementation, this would be an API call
-    console.log("Saving system settings:", values);
-    
-    toast({
-      title: "Settings saved",
-      description: "Your system settings have been saved successfully",
-      variant: "default",
-    });
+    saveSettingsMutation.mutate(values);
   };
 
   // Handle factory reset
   const handleFactoryReset = () => {
-    // In a real implementation, this would be an API call
-    form.reset(mockInitialSettings);
+    form.reset(defaultSettings);
+    saveSettingsMutation.mutate(defaultSettings);
     setConfirmFactoryResetOpen(false);
     
     toast({
@@ -119,7 +148,8 @@ export default function SystemSettings() {
 
   // Handle clear content data
   const handleClearContentData = () => {
-    // In a real implementation, this would be an API call
+    // In a real implementation, this would be API calls to clear content
+    // For now, just show success notification
     setConfirmDataClearOpen(false);
     
     toast({
