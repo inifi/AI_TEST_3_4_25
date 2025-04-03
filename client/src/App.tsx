@@ -13,6 +13,7 @@ import AnalyticsPage from "@/pages/AnalyticsPage";
 import AdCampaignsPage from "@/pages/AdCampaignsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import ScriptGenerationPage from "@/pages/ScriptGenerationPage";
+import AutomationPage from "@/pages/AutomationPage";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/ad-campaigns" component={AdCampaignsPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route path="/script-generation" component={ScriptGenerationPage} />
+      <Route path="/automation" component={AutomationPage} />
       <Route component={NotFound} />
     </Switch>
   );

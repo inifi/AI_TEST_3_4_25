@@ -19,6 +19,7 @@ const navigationItems: SidebarItem[] = [
   { name: "Content Creation", icon: "video_library", path: "/content-creation" },
   { name: "Script Generation", icon: "auto_awesome", path: "/script-generation" },
   { name: "Scheduler", icon: "schedule", path: "/scheduler" },
+  { name: "Automation", icon: "smart_toy", path: "/automation" },
   { name: "Trend Analysis", icon: "trending_up", path: "/trend-analysis" },
   { name: "Comment Management", icon: "chat", path: "/comment-management" },
   { name: "Analytics", icon: "analytics", path: "/analytics" },

@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { insertPlatformSchema, insertPlatformAccountSchema, insertContentSchema, insertScheduledPostSchema, insertTrendingTopicSchema } from "@shared/schema";
 import { z } from "zod";
 import { scriptsRouter } from "./scripts";
+import { automationRouter } from "./routes/automationRoutes";
+import { aiToolsRouter } from "./routes/aiToolsRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API prefix for all routes
@@ -498,8 +500,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mount the scripts router
+  // Mount the routers
   app.use(`${apiPrefix}/scripts`, scriptsRouter);
+  app.use(`${apiPrefix}/auto-scheduler`, automationRouter);
+  app.use(`${apiPrefix}/ai-tools`, aiToolsRouter);
   
   const httpServer = createServer(app);
   return httpServer;
