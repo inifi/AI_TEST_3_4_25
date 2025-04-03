@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlatformSchema, insertPlatformAccountSchema, insertContentSchema, insertScheduledPostSchema, insertTrendingTopicSchema } from "@shared/schema";
 import { z } from "zod";
+import { scriptsRouter } from "./scripts";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API prefix for all routes
@@ -497,6 +498,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mount the scripts router
+  app.use(`${apiPrefix}/scripts`, scriptsRouter);
+  
   const httpServer = createServer(app);
   return httpServer;
 }

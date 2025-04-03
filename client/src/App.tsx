@@ -12,6 +12,7 @@ import CommentManagementPage from "@/pages/CommentManagementPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import AdCampaignsPage from "@/pages/AdCampaignsPage";
 import SettingsPage from "@/pages/SettingsPage";
+import ScriptGenerationPage from "@/pages/ScriptGenerationPage";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/analytics" component={AnalyticsPage} />
       <Route path="/ad-campaigns" component={AdCampaignsPage} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/script-generation" component={ScriptGenerationPage} />
       <Route component={NotFound} />
     </Switch>
   );
